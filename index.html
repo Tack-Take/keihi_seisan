@@ -13,8 +13,8 @@
             color: #333;
         }
         .container {
-            max-width: 600px;
-            margin: 50px auto;
+            max-width: 700px;
+            margin: 20px auto;
             padding: 20px;
             background: #fff;
             border-radius: 8px;
@@ -23,25 +23,28 @@
         h1 {
             text-align: center;
             color: #4CAF50;
+            font-size: 1.8em;
         }
         form {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px;
         }
         label {
             font-weight: bold;
+            font-size: 1em;
         }
-        input[type="number"] {
+        input[type="number"], select {
             padding: 10px;
-            font-size: 16px;
+            font-size: 1em;
             border: 1px solid #ccc;
             border-radius: 4px;
             width: 100%;
+            box-sizing: border-box;
         }
         button {
             padding: 10px;
-            font-size: 16px;
+            font-size: 1em;
             color: #fff;
             background-color: #4CAF50;
             border: none;
@@ -59,7 +62,7 @@
             border-radius: 8px;
         }
         .results p {
-            font-size: 18px;
+            font-size: 1em;
             margin: 8px 0;
         }
         .results span {
@@ -77,48 +80,121 @@
         <form>
             <label>合計金額: <input type="number" id="total_amount" placeholder="例: 75000"></label>
             <label>参加人数: <input type="number" id="total_people" placeholder="例: 14"></label>
-            <label>高くする金額: <input type="number" id="extra_amount" placeholder="例: 1000"></label>
-            <label>高くする人数: <input type="number" id="extra_people" placeholder="例: 5"></label>
-            <label>切り上げ単位: <input type="number" id="rounding_unit" placeholder="例: 500"></label>
-            <button type="button" id="submit_button" onclick="calculate()">計算</button>
+            <label>協賛者の人数:
+                <input type="number" id="sponsor_count" min="0" max="5" value="0" onchange="generateSponsorFields()">
+            </label>
+            <div id="sponsor_fields"></div>
+            <label>高くする人の人数:
+                <input type="number" id="high_people" min="0" max="10" value="1" onchange="toggleWeightAmountField()">
+            </label>
+            <div id="weight_amount_container">
+                <label>重み付け金額:
+                    <select id="weight_amount">
+                        <option value="0">0円</option>
+                        <option value="500">500円</option>
+                        <option value="1000" selected>1000円</option>
+                        <option value="1500">1500円</option>
+                        <option value="2000">2000円</option>
+                    </select>
+                </label>
+            </div>
+            <label>切り上げ単位:
+                <select id="rounding_unit">
+                    <option value="1">1円</option>
+                    <option value="50">50円</option>
+                    <option value="100" selected>100円</option>
+                    <option value="500">500円</option>
+                    <option value="1000">1000円</option>
+                </select>
+            </label>
+            <label>協賛後の残額: <span id="remaining_after_sponsorship">-</span> <span class="yen">円</span></label>
+            <label>協賛後の割勘金額: <span id="adjusted_split_amount">-</span> <span class="yen">円</span></label>
+            <button type="button" onclick="calculateSimpleSplit()">単純割勘金額を算出</button>
+            <button type="button" onclick="calculate()">計算</button>
         </form>
         <div class="results">
-            <p>重み付け割勘（安い人）: <span id="result_low">-</span> <span class="yen">円</span></p>
-            <p>重み付け割勘（高い人）: <span id="result_high">-</span> <span class="yen">円</span></p>
+            <p>安くする人の支払い額: <span id="result_low">-</span> <span class="yen">円</span></p>
+            <p>高くする人の支払い額: <span id="result_high">-</span> <span class="yen">円</span></p>
             <p>精算後残額: <span id="result_deficit">-</span> <span class="yen">円</span></p>
         </div>
     </div>
     <script>
+        function generateSponsorFields() {
+            const sponsorCount = parseInt(document.getElementById("sponsor_count").value);
+            const sponsorFields = document.getElementById("sponsor_fields");
+            sponsorFields.innerHTML = ""; // リセット
+
+            for (let i = 0; i < sponsorCount; i++) {
+                const label = document.createElement("label");
+                label.textContent = `協賛者 ${i + 1} の協賛金: `;
+                const input = document.createElement("input");
+                input.type = "number";
+                input.id = `sponsor_${i + 1}`;
+                input.placeholder = "例: 10000";
+                sponsorFields.appendChild(label);
+                sponsorFields.appendChild(input);
+                sponsorFields.appendChild(document.createElement("br"));
+            }
+        }
+
+        function toggleWeightAmountField() {
+            const highPeople = parseInt(document.getElementById("high_people").value);
+            const weightAmountContainer = document.getElementById("weight_amount_container");
+            const weightAmountSelect = document.getElementById("weight_amount");
+
+            if (highPeople === 0) {
+                weightAmountContainer.style.display = "none";
+                weightAmountSelect.value = "0"; // 重み付け金額を0円に設定
+            } else {
+                weightAmountContainer.style.display = "block";
+                if (weightAmountSelect.value === "0") {
+                    weightAmountSelect.value = "1000"; // デフォルト値に戻す
+                }
+            }
+        }
+
+        function calculateSimpleSplit() {
+            const totalAmount = parseFloat(document.getElementById("total_amount").value);
+            const totalPeople = parseInt(document.getElementById("total_people").value);
+
+            if (totalAmount && totalPeople) {
+                const simpleSplit = (totalAmount / totalPeople).toFixed(1);
+                document.getElementById("adjusted_split_amount").innerText = simpleSplit.toLocaleString("ja-JP");
+            } else {
+                alert("合計金額と参加人数を入力してください！");
+            }
+        }
+
         function calculate() {
             const totalAmount = parseFloat(document.getElementById("total_amount").value);
             const totalPeople = parseInt(document.getElementById("total_people").value);
-            const extraAmount = parseFloat(document.getElementById("extra_amount").value);
-            const extraPeople = parseInt(document.getElementById("extra_people").value);
+            const sponsorCount = parseInt(document.getElementById("sponsor_count").value);
+            const highPeople = parseInt(document.getElementById("high_people").value);
+            const weightAmount = parseInt(document.getElementById("weight_amount").value);
             const roundingUnit = parseInt(document.getElementById("rounding_unit").value);
 
-            // 安い人と高い人の人数
-            const lowPeople = totalPeople - extraPeople;
+            let sponsorTotal = 0;
 
-            // 安い人の金額を計算 (切り上げ適用)
-            const rawLowShare = (totalAmount - (extraPeople * extraAmount)) / totalPeople;
-            const lowShare = Math.ceil(rawLowShare / roundingUnit) * roundingUnit;
+            for (let i = 0; i < sponsorCount; i++) {
+                const sponsorAmount = parseFloat(document.getElementById(`sponsor_${i + 1}`).value) || 0;
+                sponsorTotal += sponsorAmount;
+            }
 
-            // 高い人の金額を計算 (切り上げ適用)
-            const highShare = Math.ceil((lowShare + extraAmount) / roundingUnit) * roundingUnit;
+            const remainingAfterSponsorship = totalAmount - sponsorTotal;
+            document.getElementById("remaining_after_sponsorship").innerText = remainingAfterSponsorship.toLocaleString("ja-JP");
 
-            // 実際の計算合計
-            const calculatedTotal = (lowShare * lowPeople) + (highShare * extraPeople);
+            const lowPeople = totalPeople - sponsorCount - highPeople;
 
-            // 精算後残額 (正負を逆転)
-            const deficit = totalAmount - calculatedTotal;
+            const lowShare = Math.ceil((remainingAfterSponsorship - (highPeople * weightAmount)) / (lowPeople + highPeople) / roundingUnit) * roundingUnit;
 
-            // 数値を3桁区切りで表示
-            const formatNumber = (num) => num.toLocaleString('ja-JP');
+            const highShare = Math.ceil((lowShare + weightAmount) / roundingUnit) * roundingUnit;
 
-            // 結果を表示
-            document.getElementById("result_low").innerText = formatNumber(lowShare);
-            document.getElementById("result_high").innerText = formatNumber(highShare);
-            document.getElementById("result_deficit").innerText = deficit === 0 ? "0" : formatNumber(-deficit); // 正負逆転 & 0の場合は符号を除去
+            let deficit = remainingAfterSponsorship - (lowShare * lowPeople) - (highShare * highPeople);
+            deficit = deficit > 0 ? -deficit : Math.abs(deficit);
+
+            document.getElementById("result_low").innerText = lowShare.toLocaleString("ja-JP");
+            document.getElementById("result_high").innerText = highShare.toLocaleString("ja-JP");
+            document.getElementById("result_deficit").innerText = deficit === 0 ? deficit : deficit.toLocaleString("ja-JP");
         }
     </script>
 </body>
