@@ -117,6 +117,13 @@
             <p>高くする人の支払い額: <span id="result_high">-</span> <span class="yen">円</span></p>
             <p>精算後残額: <span id="result_deficit">-</span> <span class="yen">円</span></p>
         </div>
+        <div class="results">
+            <h2>【収入詳細】</h2>
+            <p>① 協賛人数: <span id="detail_sponsor_count">-</span> 協賛金合計: <span id="detail_sponsor_total">-</span> <span class="yen">円</span></p>
+            <p>② 安くする人数: <span id="detail_low_count">-</span> 安くする人の支払い額合計: <span id="detail_low_total">-</span> <span class="yen">円</span></p>
+            <p>③ 高くする人数: <span id="detail_high_count">-</span> 高くする人の支払い額合計: <span id="detail_high_total">-</span> <span class="yen">円</span></p>
+            <p>人数合計: <span id="detail_total_people">-</span> 収入合計: <span id="detail_total_income">-</span> <span class="yen">円</span></p>
+        </div>
     </div>
     <script>
         function generateSponsorFields() {
@@ -195,6 +202,20 @@
             document.getElementById("result_low").innerText = lowShare.toLocaleString("ja-JP");
             document.getElementById("result_high").innerText = highShare.toLocaleString("ja-JP");
             document.getElementById("result_deficit").innerText = deficit === 0 ? deficit : deficit.toLocaleString("ja-JP");
+
+            // 収入詳細の計算
+            const lowTotal = lowShare * lowPeople;
+            const highTotal = highShare * highPeople;
+            const totalIncome = sponsorTotal + lowTotal + highTotal;
+
+            document.getElementById("detail_sponsor_count").innerText = sponsorCount;
+            document.getElementById("detail_sponsor_total").innerText = sponsorTotal.toLocaleString("ja-JP");
+            document.getElementById("detail_low_count").innerText = lowPeople;
+            document.getElementById("detail_low_total").innerText = lowTotal.toLocaleString("ja-JP");
+            document.getElementById("detail_high_count").innerText = highPeople;
+            document.getElementById("detail_high_total").innerText = highTotal.toLocaleString("ja-JP");
+            document.getElementById("detail_total_people").innerText = totalPeople;
+            document.getElementById("detail_total_income").innerText = totalIncome.toLocaleString("ja-JP");
         }
     </script>
 </body>
